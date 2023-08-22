@@ -1,2 +1,6 @@
 import os
-os.system("Hellurei! Markus Linnanen")
+
+Huomenta = "echo Huomenta"
+
+os.system(Huomenta)
+print("Hellurei! Markus Linnanen")
