@@ -1,6 +1,6 @@
 while True:
 	year = int(input("Input a year: "))
-	if(year % 4 or (year % 100 and year % 400)):
+	if (year % 4 == 0 and year % 100 == 0 and year % 400 != 0) or year % 4:
 		print(year, "is not a leap year")
 	else:
 		print(year, "is a leap year")

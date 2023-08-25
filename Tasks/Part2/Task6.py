@@ -4,7 +4,7 @@ import random
 def FourDigitCode(r, minnum, maxnum):
 	s = ""
 	for i in range(r):
-		s += str(random.randint(abs(int(minnum % 10)), abs(int(maxnum % 10))))
+		s += str(random.randint(abs(int(minnum % (maxnum + 1))), abs(int(maxnum % (maxnum + 1)))))
 		
 	print(s)
 	

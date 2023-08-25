@@ -1,7 +1,7 @@
 # Modified Task4's modified function
 # The code is somewhat cluttered and somewhat complex for convenience
 
-# Other options didn't work so made my own function, needs more work because a empty enter crashes
+# Other options didn't work so made my own function
 def CheckForAlpha(s):
 	for chr in s:
 		if chr.isalpha():
@@ -23,7 +23,7 @@ def InputValue(x, s):
 	i = [13.3, 32, 20]
 	v = input("\n" + "Input amount of " + s + ": \n")
 	
-	if CheckForAlpha(v):
+	if CheckForAlpha(v) or not v:
 		print("Input was not numeric")
 		return InputValue(x, s)
 	#else here is useless but added anyway
