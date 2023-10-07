@@ -6,13 +6,13 @@ cnx = mysql.connector.connect(user='userguy', password='pw0rd',
 cursor = cnx.cursor()
 
 def SearchAirport(ICAO):
-	query = ("SELECT name, iso_country FROM airport "
+	query = ("SELECT name, municipality FROM airport "
 			 "WHERE ident = %s")
 
 	cursor.execute(query, (ICAO,))
 
-	for (name, iso_country) in cursor:
-		print(name + ",", iso_country)
+	for (name, municipality) in cursor:
+		print(name + ",", municipality)
 
 while True:
 	iput = input("Input airport ICAO code: ")
