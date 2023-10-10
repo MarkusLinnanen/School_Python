@@ -1,8 +1,8 @@
 from colorama import Fore
 import time as timemod
 import os
-import playsound
-import keyboard
+#import playsound
+#import keyboard
 import mysql.connector
 import random
 import datetime
@@ -43,7 +43,7 @@ def MakeGame(name, difficulty):
 	cursor.execute("SELECT ident FROM airport WHERE type = 'airbase' ORDER BY RAND() LIMIT 1")
 	location = cursor.fetchall()[0][0]
 	query = "INSERT INTO game VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-	hp = 100 * (1 + (.1 * difficulty))
+	hp = 100 * (1 - (.05 * difficulty))
 	gas = 2400 - 100 * difficulty
 	cursor.execute(query, (playernum, location, hp, gas, name, difficulty, 0, "NULL", '00:00:00'))
 	cnx.commit()
@@ -62,7 +62,7 @@ def Clean():
 Clean()
 
 def TextColorIterate(text = ["text"], it = 3, wait = 0.1, c = [Fore.RED, Fore.WHITE], sound = "hurt.wav", useClean = False, fillChar = " "):
-	playsound.playsound(sdir + sound)
+	#playsound.playsound(sdir + sound)
 	for i in range(it * len(c)):
 		for t in text:
 			print(c[i % len(c)] + t.center(80, fillChar))
@@ -151,7 +151,8 @@ alwaysInputs = [["quit", "quits the game"], ["help", "lists current commands"]]
 dClose = 1
 while(dClose):
 	inRange = getLocationsInRange()
-	validInputs = alwaysInputs + [["Move", "Lists the locations you can currently go to and takes ICAO code as input"]]
+	currinputs = [["move", "Lists the locations you can currently go to and takes ICAO code as input"], ["status", "prints the status of your plane"]]
+	validInputs = alwaysInputs + currinputs
 	choice = input("What do you want to do? ").lower()
 	validCommands = []
 	for i in validInputs:
@@ -165,8 +166,14 @@ while(dClose):
 	elif choice == "quit":
 		dClose = 0
 		break
-		
-	
+	elif choice == "status":
+		cursor.execute("SELECT hp, gas, xp FROM game WHERE id = %s", (ID,))
+		stats = cursor.fetchall()[0]
+		print(f"health: {stats[0]}, gas: {stats[1]}, xp: {stats[2]}")
+	elif choice == "move":
+		for val in inRange:
+			cursor.execute("SELECT name FROM airport WHERE ident = %s", (val,))
+			print(f"Name: {cursor.fetchall[0][0]}, ICAO: {val}")
 	
 endtime = datetime.datetime.now() - startime
 cursor.fetchall()
