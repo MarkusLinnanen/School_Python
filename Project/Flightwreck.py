@@ -123,13 +123,17 @@ else:
 	users = cursor.fetchall()
 	idlist = []
 	for (id, screen_name, location, time) in users:
-		print(str(id) + ".",  "name: " + screen_name, "location: " + location,"Time played:" + time)
+		print(str(id) + ".",  "name: " + screen_name, "location: " + location,"Time played:" + str(time).split(".")[0])
 		idlist.append(id)
 	ID = input("which game would you like to continue, choose by number: ")
 	while not ID.isnumeric() or int(ID) not in idlist or not ID:
 		print("input was invalid")
 		ID = input("which game would you like to continue, choose by number: ")
+Clean()
 startime = datetime.now()
-	
+time.sleep(10)
+endtime = datetime.now()
+cursor.fetchall()
+cursor.execute("UPDATE game SET time = time + %s WHERE id = %s", ((endtime - startime), ID))
 cursor.close()
 cnx.close()
