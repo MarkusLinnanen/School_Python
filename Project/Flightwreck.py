@@ -1,11 +1,12 @@
 from colorama import Fore
-import time
+import time as timemod
 import os
 import playsound
 import keyboard
 import mysql.connector
 import random
 import datetime
+import geopy.distance
 
 cnx = mysql.connector.connect(user='userguy', password='pw0rd',
                               host='localhost',
@@ -14,7 +15,9 @@ cursor = cnx.cursor()
 
 sdir = "/home/markus_l/Documents/School_Python/Project/Sounds/"
 
-	
+gameValues = ()
+gameLocation = ()
+ID = 0	
 def MakeLocations(amount, diff, player):
 	enemylocations = int(amount / 1.4 - (diff * 0.1))
 	amountmade = 0
@@ -63,7 +66,7 @@ def TextColorIterate(text = ["text"], it = 3, wait = 0.1, c = [Fore.RED, Fore.WH
 	for i in range(it * len(c)):
 		for t in text:
 			print(c[i % len(c)] + t.center(80, fillChar))
-		time.sleep(wait)
+		timemod.sleep(wait)
 		if useClean:
 			Clean()
 		else:
@@ -73,17 +76,6 @@ def TextColorIterate(text = ["text"], it = 3, wait = 0.1, c = [Fore.RED, Fore.WH
 	for t in text:
 		print(t.center(80, fillChar))
 	print("\n")
-	
-s = ["______ _ _       _     _     _    _               _      ",
-"|  ___| (_)     | |   | |   | |  | |             | |     ",
-"| |_  | |_  __ _| |__ | |_  | |  | |_ __ ___  ___| | __  ",
-"|  _| | | |/ _` | '_ \| __| | |/\| | '__/ _ \/ __| |/ /  ",
-"| |   | | | (_| | | | | |_  \  /\  / | |  __/ (__|   <   ",
-"\_|   |_|_|\__, |_| |_|\__|  \/  \/|_|  \___|\___|_|\_\  ",
-"            __/ |                                        ",
-"           |___/                                         "]
-
-TextColorIterate(s, 5, .075, useClean = True)
 
 def printhealth(condition = 10):
 	s = "Health: "
@@ -102,6 +94,26 @@ def CheckANInput(IputList, OptionLists):
 			return True
 		return False
 
+def getLocationsInRange():
+	cursor.execute("SELECT airport_id, latitude_deg, longitude_deg FROM airport, locations WHERE game_id = %s AND airport_id = ident", (ID,))
+	locations = cursor.fetchall()
+	locationsInRange = []
+	for l in locations:
+		if geopy.distance.distance(gameLocation, (l[1], l[2])).km > gameValues[3] * 3:
+			locationsInRange.append(l[0])
+	return locationsInRange
+
+s = ["______ _ _       _     _     _    _               _      ",
+"|  ___| (_)     | |   | |   | |  | |             | |     ",
+"| |_  | |_  __ _| |__ | |_  | |  | |_ __ ___  ___| | __  ",
+"|  _| | | |/ _` | '_ \| __| | |/\| | '__/ _ \/ __| |/ /  ",
+"| |   | | | (_| | | | | |_  \  /\  / | |  __/ (__|   <   ",
+"\_|   |_|_|\__, |_| |_|\__|  \/  \/|_|  \___|\___|_|\_\  ",
+"            __/ |                                        ",
+"           |___/                                         "]
+
+TextColorIterate(s, 5, .075, useClean = True)
+	
 TextColorIterate(text = ["Make new or load"], c = [Fore.WHITE], fillChar = "?", it = 0) 
 
 choice = input("'new' for new game, 'load' to load game: ").lower()
@@ -109,7 +121,6 @@ while not CheckANInput([choice], [["new", "load"]]):
 	print("Input was insufficent")
 	choice = input("'new' for new game, 'load' to load game: ").lower()
 
-ID = 0
 if choice == "new":
 	gamename = input("What is Your Name: ")
 	difficulty = input("Difficulty of the game as number 1-3: ")
@@ -129,11 +140,37 @@ else:
 	while not ID.isnumeric() or int(ID) not in idlist or not ID:
 		print("input was invalid")
 		ID = input("which game would you like to continue, choose by number: ")
+
+cursor.execute("SELECT * FROM game WHERE id = %s", (ID,))
+gameValues = cursor.fetchall()[0]
+cursor.execute("SELECT latitude_deg, longitude_deg FROM airport WHERE ident = %s", (gameValues[1],))
+gameLocation = cursor.fetchall()[0]
 Clean()
-startime = datetime.now()
-time.sleep(10)
-endtime = datetime.now()
+startime = datetime.datetime.now()
+alwaysInputs = [["quit", "quits the game"], ["help", "lists current commands"]]
+dClose = 1
+while(dClose):
+	inRange = getLocationsInRange()
+	validInputs = alwaysInputs + [["Move", "Lists the locations you can currently go to and takes ICAO code as input"]]
+	choice = input("What do you want to do? ").lower()
+	validCommands = []
+	for i in validInputs:
+		validCommands.append(i[0])
+	while not CheckANInput([choice], validCommands):
+		print("invalid input, input 'help' for commands")
+		choice = input("What do you want to do? ").lower()
+	if choice == "help":
+		for v in validInputs:
+			print("command: " + v[0] + ", desc: " + v[1])
+	elif choice == "quit":
+		dClose = 0
+		break
+		
+	
+	
+endtime = datetime.datetime.now() - startime
 cursor.fetchall()
-cursor.execute("UPDATE game SET time = time + %s WHERE id = %s", ((endtime - startime), ID))
+cursor.execute("UPDATE game SET time = ADDTIME(time,%s) WHERE id = %s", (endtime, ID))
+cnx.commit()
 cursor.close()
 cnx.close()
