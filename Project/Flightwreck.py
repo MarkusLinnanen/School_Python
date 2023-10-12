@@ -90,10 +90,9 @@ def printhealth(condition = 10):
 	print(Fore.GREEN + s.center(80))
 	
 
-def CheckInput(IputList, OptionLists):
-	for iput in IputList:
-		if iput in OptionLists:
-			return False
+def CheckInput(iput, OptionLists):
+	if iput in OptionLists:
+		return False
 	return True
 
 def CheckCommands(iput, OptionList):
@@ -120,7 +119,7 @@ def loadGame():
 		print(str(id) + ".",  "name: " + screen_name, "location: " + location,"Time played:" + str(time).split(".")[0])
 		idlist.append(id)
 	ID = input("which game would you like to continue, choose by number: ")
-	while not ID.isnumeric() or CheckInput([int(ID)], idlist):
+	while not ID.isnumeric() or CheckInput(int(ID), idlist):
 		print("input was invalid")
 		ID = input("which game would you like to continue, choose by number: ")
 
