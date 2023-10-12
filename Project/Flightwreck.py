@@ -97,7 +97,7 @@ def CheckInput(IputList, OptionLists):
 	return True
 
 def CheckCommands(iput, OptionList):
-	for option in OptionList
+	for option in OptionList:
 		if iput == option.name:
 			return False
 	return True
@@ -136,6 +136,60 @@ def makeNew():
 def helpList():
 	for cmd in validCommands: 
 		print(f"Command: {cmd.name}, {cmd.desc}")
+
+def Fight():
+	enemytypes = ["light","heavy","boss"]
+	cursor.execute("SELECT enemy_count, type FROM enemy WHERE type IN (SELECT enemy_id FROM locations WHERE game_id = %s) ", (ID,))
+	enemyInfo = cursor.fetchall()[0]
+	if enemyInfo[0] > 6:
+		enemyInfo[0] -= random.randint(0, 3)
+	choice = input("'go' to fight or 'leave' to leave").lower()
+	while CheckInput(choice, ["go", "leave"]):
+		choice = input("'go' to go or 'leave' to leave").lower()
+	#gameValues[2] -= enemyInfo[0] * enemytypes.index(enemyInfo[1]) * gameValues[]
+    gas += 50 * enemyamount * enemytype - int(difficulty) * 3
+    while True:
+        if enemyInfo[1] == "abandoned":
+            choice = input("This airport is abandoned 'stay' to stay and repair your aircraft, 'leave' to leave: ")
+            if choice == "stay":
+                gameValues[2] += random.randint(20, 40) - int(difficulty) * 5
+            else:
+                break
+        elif enemyInfo[1] == "light":
+            choice = input("This airport is guarded lightly 'stay' to stay and fight, 'leave' to leave: ")
+            if choice == "stay":
+                gameValues[2] -= enemyInfo[0] * (difficulty + 1)
+                gameValues[3] += 50 * enemyInfo[0] - int(difficulty) * 3
+            else:
+                break
+        elif enemyInfo[1] == "heavy":
+            choice = input("This airport is guarded heavily 'stay' to stay and fight, 'leave' to leave: ")
+            if choice == "stay":
+                gameValues[2] -= int(enemyInfo[0] * (difficulty + 1.5))
+                gameValues[3] += 50 * enemyInfo[0] - int(difficulty) * 3
+            else:
+                break
+        elif enemyInfo[1] == "boss":
+            choice = input("This airport has a boss 'stay' to stay and fight, 'leave' to LEAVE: ")
+            if choice == "stay":
+                if gameValues[2] > 75:
+                    gameValues[2] -= 75
+                    gameValues[3] += 25000
+                    choice = input(f"You managed to beat your arch nemesis.\n'continue' to continue the game or 'quit' to quit the game: ")
+                    if choice == "continue":
+                        return
+                    elif choice == "quit":
+                        cmd_quit.action()
+                elif gameValues[2] < 75:
+                    choice = input(f"Your arch nemesis shot you down.\n'new' to create a new game or 'quit' to quit the game: ")
+                    if choice == "new":
+                        cmd_new.action()
+						return
+					elif choice == "quit":
+                        return
+            else:
+                
+		
 		
 def move():
 	validCommands = [cmd_exit]
@@ -171,16 +225,7 @@ def move():
 		if gameValues[2] > 100:
 			cursor.execute("UPDATE game SET health = 100 WHERE id = %s", (ID,))
 			gameValues[2] = 100
-		
-def Fight(enemyInfo):
-	cursor.execute("SELECT enemy_count, type FROM enemy WHERE type IN (SELECT enemy_id FROM locations WHERE game_id = %s) ", (ID,))
-	enemyInfo = cursor.fetchall()[0]
-	if enemyInfo[0] > 6:
-		enemyInfo[0] -= random.randint(0, 3)
-	choice = input("'fight' to fight or 'evade' to evade").lower()
-    hp -= enemyamount * enemytype * difficulty
-    gas += 50 * enemyamount * enemytype - int(difficulty) * 3
-    return gas, hp	
+		Fight()
 		
 def doCommand(iput):
 	for cmd in validCommands:
