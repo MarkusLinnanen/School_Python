@@ -19,7 +19,7 @@ gameValues = ()
 gameLocation = ()
 ID = 0
 validCommands = []
-quitting = False
+play = True
 
 def MakeLocations(amount, diff, player):
 	enemylocations = int(amount / 1.4 - (diff * 0.1))
@@ -80,14 +80,25 @@ def TextColorIterate(text = ["text"], it = 3, wait = 0.1, c = [Fore.RED, Fore.WH
 		print(t.center(80, fillChar))
 	print("\n")
 
-def printhealth(condition = 10):
+def checkHealth():
+	cursor.execute("SELECT * FROM game WHERE id = %s", (ID,))
+	gameValues = cursor.fetchone()
+	if gameValues[2] > 100:
+		cursor.execute("UPDATE game SET health = 100 WHERE id = %s", (ID,))
+		gameValues[2] = 100
+		cnx.commit()
+	elif gameValues[2] <= 0:
+		TextColorIterate(["Your plane was destroyed and you died!"], 10, 0.1, [Fore.YELLOW, Fore.RED, Fore.BLACK], "explosion.wav", False, "!", "\033[1m", "\033[0m")
+
+	
+def printhealth():
 	s = "Health: "
 	for i in range(10):
 		if i < condition:
 			s += "#"
 		else:
 			s += "X"
-	print(Fore.GREEN + s.center(80))
+	print(Fore.GREEN + "Health: " + s + "\033[0m")
 	
 
 def CheckInput(iput, OptionLists):
@@ -95,9 +106,10 @@ def CheckInput(iput, OptionLists):
 		return False
 	return True
 
-def CheckCommands(iput, OptionList):
-	for option in OptionList:
+def CheckCommands(iput):
+	for option in validCommands:
 		if iput == option.name:
+			option.action()
 			return False
 	return True
 
@@ -131,6 +143,12 @@ def makeNew():
 		gamename = input("What is Your Name: ")
 		difficulty = input("Difficulty of the game as number 1-3: ")
 	ID = MakeGame(gamename, abs((int(difficulty) - 1) % 3))
+	
+def deleteGame():
+	cursor.execute("DELETE game WHERE id = %s", (ID,))
+	cursor.execute("UPDATE game, locations SET id = id - 1 WHERE id > %s", (ID,))
+	cursor.execute("UPDATE locations SET game_id = game_id - 1 WHERE game_id > %s", (ID,))
+	cnx.commit
 
 def helpList():
 	for cmd in validCommands: 
@@ -145,50 +163,59 @@ def Fight():
 	choice = input("'go' to fight or 'leave' to leave").lower()
 	while CheckInput(choice, ["go", "leave"]):
 		choice = input("'go' to go or 'leave' to leave").lower()
-	#gameValues[2] -= enemyInfo[0] * enemytypes.index(enemyInfo[1]) * gameValues[]
-    gas += 50 * enemyamount * enemytype - int(difficulty) * 3
-    while True:
-        if enemyInfo[1] == "abandoned":
-            choice = input("This airport is abandoned 'stay' to stay and repair your aircraft, 'leave' to leave: ")
-            if choice == "stay":
-                gameValues[2] += random.randint(20, 40) - int(difficulty) * 5
-            else:
-                break
-        elif enemyInfo[1] == "light":
-            choice = input("This airport is guarded lightly 'stay' to stay and fight, 'leave' to leave: ")
-            if choice == "stay":
-                gameValues[2] -= enemyInfo[0] * (difficulty + 1)
-                gameValues[3] += 50 * enemyInfo[0] - int(difficulty) * 3
-            else:
-                break
-        elif enemyInfo[1] == "heavy":
-            choice = input("This airport is guarded heavily 'stay' to stay and fight, 'leave' to leave: ")
-            if choice == "stay":
-                gameValues[2] -= int(enemyInfo[0] * (difficulty + 1.5))
-                gameValues[3] += 50 * enemyInfo[0] - int(difficulty) * 3
-            else:
-                break
-        elif enemyInfo[1] == "boss":
-            choice = input("This airport has a boss 'stay' to stay and fight, 'leave' to LEAVE: ")
-            if choice == "stay":
-                if gameValues[2] > 75:
-                    gameValues[2] -= 75
-                    gameValues[3] += 25000
-                    choice = input(f"You managed to beat your arch nemesis.\n'continue' to continue the game or 'quit' to quit the game: ")
-                    if choice == "continue":
-                        return
-                    elif choice == "quit":
-                        cmd_quit.action()
-                elif gameValues[2] < 75:
-                    choice = input(f"Your arch nemesis shot you down.\n'new' to create a new game or 'quit' to quit the game: ")
-                    if choice == "new":
-                        cmd_new.action()
-						return
-					elif choice == "quit":
-                        return
-            else:
-                
-		
+	if enemyInfo[1] == "abandoned":
+		TextColorIterate(["This airport is abandoned, you fix your plane and rest"], 10, 0.1, [Fore.YELLOW, Fore.WHITE], "loot.wav", False, "-", "\033[1m", "\033[0m")
+		gameValues[2] += random.randint(20, 40) - int(gameValues[5]) * 5
+		return
+	elif enemyInfo[1] == "light":
+		TextColorIterate(["This airport is guarded lightly"], 10, 0.1, [Fore.YELLOW, Fore.WHITE], "hurt.wav", False, "-", "\033[1m", "\033[0m")
+		choice = input("'stay' to stay and fight, 'leave' to leave: ")
+		while CheckInput(choice, ["stay", "leave"]):
+			choice = input("'stay' to stay and fight, 'leave' to leave: ")
+		if choice == "stay":
+			gameValues[2] -= enemyInfo[0] * enemytypes.index(enemyInfo[1] + 1)
+			checkHealth()
+			gameValues[3] += 50 * enemyInfo[0] - int(gameValues[5]) * 3
+		else:
+			return
+	elif enemyInfo[1] == "heavy":
+		TextColorIterate(["This airport is guarded heavily"], 10, 0.1, [Fore.YELLOW, Fore.RED], "hurt.wav", False, "*", "\033[1m", "\033[0m")
+		choice = input("'stay' to stay and fight, 'leave' to leave: ")
+		while CheckInput(choice, ["stay", "leave"]):
+			choice = input("'stay' to stay and fight, 'leave' to leave: ")
+		if choice == "stay":
+			gameValues[2] -= enemyInfo[0] * enemytypes.index(enemyInfo[1] + 1.5)
+			checkHealth()
+			gameValues[3] += 50 * enemyInfo[0] - int(gameValues[5]) * 3
+		else:
+			return
+	elif enemyInfo[1] == "boss":
+		TextColorIterate(["This airport has a boss"], 10, 0.1, [Fore.YELLOW, Fore.RED, Fore.BLACK], "boss.wav", False, "!", "\033[1m", "\033[0m")
+		choice = input("'stay' to stay and fight, 'leave' to LEAVE: ")
+		while CheckInput(choice, ["stay", "leave"]):
+			choice = input("'stay' to stay and fight, 'leave' to leave: ")
+		if choice == "stay":
+			if gameValues[2] > 75:
+				gameValues[2] -= 75
+				gameValues[3] += 25000
+				choice = input(f"You managed to beat your arch nemesis.\n'continue' to continue the game or 'quit' to quit the game: ")
+				if choice == "continue":
+					return
+				elif choice == "quit":
+					cmd_quit.action()
+					return
+			elif gameValues[2] <= 75:
+				choice = input(f"Your arch nemesis shot you down.\n'new' to create a new game or 'quit' to quit the game: ")
+				if choice == "new":
+					deleteGame()
+					cmd_new.action()
+					return
+				elif choice == "quit":
+					cmd_quit.action()
+					return
+		else:
+			return
+
 		
 def move():
 	validCommands = [cmd_exit]
@@ -199,47 +226,45 @@ def move():
 		print(f"ICAO code: {vals[0]} \n" + f"Name: {vals[1]}\n" + f"Distance to: %.0f " % vals[2] + "km \n")
 		ICAOs.append(vals[0].lower())
 
-	choice = input("Input ICAO code of where you wanna move or exit or quit: ").lower()
-	cbol = False
+	choice = input("Input ICAO code of where you wanna move or exit: ").lower()
+	cmdbool = False
 	while True:
-		if CheckCommand(choice, validInputs):
-			choice = input("Invalid input, Input ICAO code of where you want to move or 'exit' if you don't want to move: ").lower()
-			cbol = True
-		elif CheckInput(choice, ICAOs):
-			choice = input("Invalid input, Input ICAO code of where you want to move or 'exit' if you don't want to move or 'quit' if you want to quit the game: ").lower()
-		else:
+		if not CheckCommand(choice, validCommands):
+			cmdbool = True
 			break
-	if cbol:
-		doCommands(choice)
+		elif not CheckInput(choice, ICAOs):
+			break
+		else:
+			choice = input("Invalid input, Input ICAO code of where you want to move or 'exit' if you don't want to move: ").lower()
+			pass
+	if cmdbool:
 		return
 	else:
 		for vals in inRange:
 			if vals[0].lower() == choice:
 				airportVals.extend(vals)
+				break
 		cursor.execute("UPDATE game SET gas = gas - %s, location = %s WHERE id = %s", (int(airportVals[2] / 3), airportVals[0], ID))
 		cursor.execute("UPDATE location SET location = 1 WHERE airport_id =  %s", (airportVals[0], ))
 		cnx.commit()
-		cursor.execute("SELECT * FROM game WHERE id = %s", (ID,))
-		gameValues = cursor.fetchall()[0]
-		if gameValues[2] > 100:
-			cursor.execute("UPDATE game SET health = 100 WHERE id = %s", (ID,))
-			gameValues[2] = 100
+		Balance()
 		Fight()
 		
 def doCommand(iput):
 	for cmd in validCommands:
 		if iput == cmd.name:
 			cmd.action()
+			return
 	
-def q():
-	TextColorIterate(["Bye!"], it = 50, wait = 0.02, c = [Fore.BLUE, Fore.GREEN, Fore.YELLOW], sound = "quit.wav", fillChar = " ", start = "\033[1m", end = "\033[0m")
-	quitting = True
+def quit():
+	TextColorIterate(["Bye!"], it = 50, wait = 0.02, c = [Fore.BLUE, Fore.GREEN, Fore.YELLOW], sound = "quit.wav", useClean = True, fillChar = " ", start = "\033[1m", end = "\033[0m")
+	play = False
 
 e = lambda : False
 s = lambda : print(f"health: {gameValues[2]} \n" + f"gas: {gameValues[3]} \n" + f"xp: {gameValues[7]} \n" + f"ICAO location: {gameValues[2]}\n")
 
 class Command:
-	def __init__(self, name = "quit", desc = "quits the game", action = q):
+	def __init__(self, name = "quit", desc = "quits the game", action = quit):
 		self.name = name
 		self.desc = desc
 		self.action = action
@@ -261,42 +286,37 @@ s = ["______ _ _       _     _     _    _               _      ",
 "            __/ |                                        ",
 "           |___/                                         "]
 
-TextColorIterate(s, 5, .075, useClean = True, sound = "hurt.wav")
+TextColorIterate(s, 15, .075, useClean = True, sound = "intro.wav")
 	
-TextColorIterate(text = ["StartMenu"], c = [Fore.BLUE, Fore.YELLOW], fillChar = "?", it = 5, wait = .1, sound = "hurt.wav", start = "\033[1m", end = "\033[0m") 
+TextColorIterate(text = ["StartMenu"], c = [Fore.BLUE, Fore.YELLOW], fillChar = "-", it = 5, wait = .1, sound = "", start = "\033[1m", end = "\033[0m") 
 
-validCommands = [cmd_new, cmd_load, cmd_help, cmd_quit]
+validCommands = [cmd_new, cmd_load, cmd_quit]
 
-choice = input("Input: make 'new' game, 'load' previous game or 'quit', 'help' for commands: ").lower()
-while CheckCommands(choice, validCommands):
+choice = input("Input: make 'new' game, 'load' previous game or 'quit': ").lower()
+while CheckCommands(choice):
 	print("Input was insufficent")
-	choice = input("Input: make 'new' game, 'load' previous game or 'quit', 'help' for commands: ").lower()
-	
-doCommand(choice, validCommands)
-
-cursor.execute("SELECT * FROM game WHERE id = %s", (ID,))
-gameValues = cursor.fetchall()[0]
-cursor.execute("SELECT latitude_deg, longitude_deg FROM airport WHERE ident = %s", (gameValues[1],))
-gameLocation = cursor.fetchall()[0]
-Clean()
+	choice = input("Input: make 'new' game, 'load' previous game or 'quit': ").lower()
 
 startime = datetime.datetime.now()
 
-validCommands = [cmd_help, cmd_quit, cmd_status, cmd_move]
-while not quitting:
+validCommands = [cmd_help, cmd_quit, cmd_stats, cmd_move]
+while play:
+	cursor.execute("SELECT * FROM game WHERE id = %s", (ID,))
+	gameValues = cursor.fetchall()[0]
+	cursor.execute("SELECT latitude_deg, longitude_deg FROM airport WHERE ident = %s", (gameValues[1],))
+	gameLocation = cursor.fetchall()[0]
+	Clean()
 	if len(getLocationsInRange()) < 1:
 		cursor.execute("UPDATE game SET gas = gas + 1000 WHERE id = %s", (ID,))
 		cnx.commit()
 		pass
 	choice = input("What do you want to do? ").lower()
-	while checkCommands(choice, validCommands):
+	while CheckCommands(choice):
 		print("invalid input, input 'help' for commands")
 		choice = input("What do you want to do? ").lower()
-	doCommand(choice)
 			
 	
 endtime = datetime.datetime.now() - startime
-cursor.fetchall()
 cursor.execute("UPDATE game SET time = ADDTIME(time,%s) WHERE id = %s", (endtime, ID))
 cnx.commit()
 cursor.close()
