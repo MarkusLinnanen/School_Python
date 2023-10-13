@@ -80,8 +80,12 @@ def TextColorIterate(text = ["text"], it = 3, wait = 0.1, c = [Fore.RED, Fore.WH
 
 def checkHealth():
 	global ID
+	global gameValues
 	cursor.execute("SELECT * FROM game WHERE id = %s", (ID,))
-	gameValues = cursor.fetchone()
+	v = cursor.fetchall()[0]
+	gameValues = []
+	for val in v:
+		gameValues.append(val)
 	if gameValues[2] > 100:
 		cursor.execute("UPDATE game SET health = 100 WHERE id = %s", (ID,))
 		gameValues[2] = 100
@@ -158,6 +162,7 @@ def helpList():
 
 def Fight():
 	global ID
+	global gameValues
 	enemytypes = ["light","heavy","boss"]
 	cursor.execute("SELECT enemy_count, type FROM enemy WHERE type IN (SELECT enemy_id FROM locations WHERE game_id = %s) ", (ID,))
 	enemyInfo = cursor.fetchall()[0]
@@ -222,39 +227,27 @@ def Fight():
 		
 def move():
 	global ID
-	global validCommands
-	validCommands = [cmd_exit]
 	inRange = getLocationsInRange()
 	airportVals = []
 	ICAOs = []
-	print(ID)
 	for vals in inRange:
 		print(f"ICAO code: {vals[0]} \n" + f"Name: {vals[1]}\n" + f"Distance to: %.0f " % vals[2] + "km \n")
 		ICAOs.append(vals[0].lower())
-
-	choice = input("Input ICAO code of where you wanna move or exit: ").lower()
-	cmdbool = False
-	while True:
-		if CheckCommands(choice):
-			cmdbool = True
-			break
-		elif CheckInput(choice, ICAOs):
-			break
-		else:
-			choice = input("Invalid input, Input ICAO code of where you want to move or 'exit' if you don't want to move: ").lower()
-			pass
-	if cmdbool:
-		return
-	else:
-		for vals in inRange:
-			if vals[0].lower() == choice:
-				airportVals.extend(vals)
-				break
-		cursor.execute("UPDATE game SET gas = gas - %s, location = %s WHERE id = %s", (int(airportVals[2] / 3), airportVals[0], ID))
-		cursor.execute("UPDATE location SET location = 1 WHERE airport_id =  %s", (airportVals[0], ))
-		cnx.commit()
-		checkHealth()
+	choice = input("Input ICAO code of where you wanna move: ").lower()
+	while CheckInput(choice, ICAOs):
+		choice = input("Invalid input, Input ICAO code of where you want to move: ").lower()
+	for vals in inRange:
+		if vals[0].lower() == choice:
+			airportVals.extend(vals)
+	cursor.execute("UPDATE game SET gas = gas - %s, location = %s WHERE id = %s", (int(airportVals[2] / 3), airportVals[0], ID))
+	cursor.execute("UPDATE locations SET visited = 1 WHERE airport_id =  %s", (airportVals[0], ))
+	cnx.commit()
+	checkHealth()
+	cursor.execute("SELECT visited FROM locations WHERE airport_id = %s and game_id = %s", (choice.upper() ,ID))
+	if cursor.fetchall()[0][0] == 0:
 		Fight()
+	else:
+		print("Already been here!")
 		
 def doCommand(iput):
 	for cmd in validCommands:
@@ -265,7 +258,9 @@ def doCommand(iput):
 q = lambda:TextColorIterate(["Bye!"], it = 50, wait = 0.02, c = [Fore.BLUE, Fore.GREEN, Fore.YELLOW], sound = "quit.wav", useClean = True, fillChar = " ", start = "\033[1m", end = "\033[0m")
 
 e = lambda : False
-s = lambda : print(f"health: {gameValues[2]} \n" + f"gas: {gameValues[3]} \n" + f"xp: {gameValues[7]} \n" + f"ICAO location: {gameValues[2]}\n")
+def s(): 
+	global gameValues
+	print(f"health: {gameValues[2]} \n" + f"gas: {gameValues[3]} \n" + f"xp: {gameValues[6]} \n" + f"ICAO location: {gameValues[1]}\n")
 
 class Command:
 	def __init__(self, name = "quit", desc = "quits the game", action = q):
