@@ -7,7 +7,8 @@ iput = input("Input location: ")
 location = app.geocode(iput)
 if location is not None:
     rawloc = location.raw
-    getstring = f"https://api.openweathermap.org/data/2.5/weather?lat={rawloc['lat']}&lon={rawloc['lon']}&exclude=minutely,horly,daily,alerts&units=metric&appid=6e845d0e04bb10abda9c8b13da73f29c"
+    # API key excluded
+    getstring = f"https://api.openweathermap.org/data/2.5/weather?lat={rawloc['lat']}&lon={rawloc['lon']}&exclude=minutely,horly,daily,alerts&units=metric&appid=APIKEY"
     print(getstring)
     try:
         results = requests.get(getstring)
